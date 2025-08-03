@@ -1,0 +1,104 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"EngineVersion" : "",
+	"FriendlyName": "Gradientspace Toolbox",
+	"Description": "A Modeling Mode Extension plugin with Tools for Texture Painting, ModelGrid Asset Creation and Editing, better Mesh Import/Export",
+	"Category": "Other",
+	"CreatedBy": "Gradientspace Corp.",
+	"CreatedByURL": "https://www.gradientspace.com/uetoolbox",
+	"FabURL": "com.epicgames.launcher://ue/Fab/product/40e3403e-6fa3-46f9-8c7c-7938dccfd0a9",
+	"SupportURL": "https://discord.com/invite/2Dnjr5afSz",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"EnabledByDefault": true,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "GradientspaceCore",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList":  ["Win64"]
+		},
+		{
+			"Name": "GradientspaceUECore",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [ "Win64" ]
+		},
+		{
+			"Name": "GradientspaceUECoreEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [ "Win64" ]
+		},		
+		{
+			"Name": "GradientspaceGrid",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [ "Win64" ]
+		},
+		{
+			"Name": "GradientspaceIO",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [ "Win64" ]
+		},	
+		{
+			"Name": "GradientspaceUEScene",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [ "Win64" ]
+		},
+		{
+			"Name": "GradientspaceUESceneEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [ "Win64" ]
+		},
+		{
+			"Name": "GradientspaceScript",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [ "Win64" ]
+		},
+		{
+			"Name": "GradientspaceUEToolCore",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [ "Win64" ]
+		},		
+		{
+			"Name": "GradientspaceUEToolbox",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [ "Win64" ]
+		},
+		{
+			"Name": "GradientspaceUEWidgets",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [ "Win64" ]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "GeometryProcessing",
+			"Enabled": true
+		},
+		{
+			"Name": "MeshModelingToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [ "Editor" ]
+		},
+		{
+			"Name": "GeometryScripting",
+			"Enabled": true
+		}
+	]
+}
