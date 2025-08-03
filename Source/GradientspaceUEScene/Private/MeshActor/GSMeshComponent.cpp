@@ -2,7 +2,6 @@
 
 #include "MeshActor/GSMeshComponent.h"
 #include "MeshActor/DenseMeshSceneProxy.h"
-#include "MeshActor/InstancedDenseMeshSceneProxy.h"
 
 #include "VectorUtil.h"
 #include "BoxTypes.h"

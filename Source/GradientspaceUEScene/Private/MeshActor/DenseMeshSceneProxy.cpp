@@ -7,6 +7,7 @@
 #include "MaterialDomain.h"
 #include "SceneInterface.h"
 #include "SceneManagement.h"
+#include "SceneView.h"
 #include "Materials/Material.h"
 #include "MeshBatch.h"
 
