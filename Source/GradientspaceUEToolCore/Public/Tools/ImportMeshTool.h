@@ -137,6 +137,18 @@ public:
 
 
 UCLASS()
+class GRADIENTSPACEUETOOLCORE_API UImportMeshTool_STLOptions : public UInteractiveToolPropertySet
+{
+	GENERATED_BODY()
+public:
+	/** Weld imported mesh vertices */
+	UPROPERTY(EditAnywhere, Category = "STL Options")
+	bool bWeldVertices = true;
+};
+
+
+
+UCLASS()
 class GRADIENTSPACEUETOOLCORE_API UImportMeshTool_TransformOptions : public UInteractiveToolPropertySet
 {
 	GENERATED_BODY()
@@ -273,8 +285,11 @@ public:
 	virtual bool SupportsWorldSpaceFocusPoint() override;
 	virtual bool GetWorldSpaceFocusPoint(const FRay& WorldRay, FVector& PointOut) override;
 
-	virtual void SetStartupImportFilePath(FString Path) { StartupImportFilePath = Path; }
+	virtual void SetStartupImportFilePath(FString Path) { 
+		StartupImportFilePath = Path; 
+	}
 	virtual void SetEnableAutoPlacementOnLoad(bool bEnable) { bEnableAutoPlacementOnLoad = bEnable; }
+	virtual void SetCloseOnCancelImportDialog(bool bEnable) { bCloseToolOnImportDialogCancel = bEnable; }
 
 protected:
 
@@ -293,6 +308,9 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UImportMeshTool_OBJOptions> OBJFormatOptions;
+
+	UPROPERTY()
+	TObjectPtr<UImportMeshTool_STLOptions> STLFormatOptions;
 
 
 protected:
@@ -327,11 +345,14 @@ protected:
 	TPimplPtr<FImportMeshOpFactory> OperatorFactory;
 	friend class FImportMeshOpFactory;
 
+	bool bCloseToolOnImportDialogCancel = false;
+
 	FString StartupImportFilePath;
 	FString CurrentImportFilePath;
 	EImportMeshToolFormatType ImportType;
 	bool UpdateImport();
 	bool UpdateImport_OBJ();
+	bool UpdateImport_STL();
 
 
 	FViewCameraState ViewState;

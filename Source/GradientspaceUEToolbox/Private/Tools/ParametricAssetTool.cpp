@@ -14,6 +14,7 @@
 #include "ParametricAssets/GSStaticMeshProcessor.h"
 #include "ParametricAssets/GSObjectUIBuilder.h"
 
+#include "Core/UEVersionCompat.h"
 
 #define LOCTEXT_NAMESPACE "UGSParametricAssetTool"
 
@@ -233,7 +234,7 @@ void UGSParametricAssetTool::DisconnectFromParametricObjectPropertySets()
 
 	// remove existing parameter objects
 	while (ToolPropertyObjects.Num() > NumBasePropertySets) {
-		ToolPropertyObjects.Pop(false);
+		GSUE::TArrayPop(ToolPropertyObjects);
 	}
 }
 

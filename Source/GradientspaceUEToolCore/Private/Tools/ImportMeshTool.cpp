@@ -21,12 +21,13 @@
 #include "Selections/MeshConnectedComponents.h"
 #include "CompGeom/PolygonTriangulation.h"
 #include "SceneQueries/SceneSnappingManager.h"
+#include "DynamicMesh/Operations/MergeCoincidentMeshEdges.h"
 
 #include "Image/ImageBuilder.h"
 #include "ModelingOperators.h"
 
 #include "MeshIO/OBJReader.h"
-#include "MeshIO/OBJWriter.h"
+#include "MeshIO/STLReader.h"
 
 #include "Utility/PlacementUtils.h"
 
@@ -65,7 +66,11 @@ struct FImportedMeshData
 {
 	//FDynamicMesh3 SourceMesh;
 	EImportMeshToolFormatType FileFormat;
+	
 	GS::OBJFormatData OBJData;
+	
+	GS::STLReader::STLMeshData STLData;
+	bool bWeldSTL = false;
 };
 
 
@@ -147,7 +152,16 @@ public:
 	virtual bool CalculateResultInPlace(FDynamicMesh3& EditMesh, FProgressCancel* Progress)
 	{
 		if (SourceData == nullptr) return false;
+		if (SourceData->FileFormat == EImportMeshToolFormatType::OBJFormat) {
+			return CalculateResultInPlace_OBJ(EditMesh, Progress);
+		} else if ( SourceData->FileFormat == EImportMeshToolFormatType::STLFormat) {
+			return CalculateResultInPlace_STL(EditMesh, Progress);
+		}
+		return false;
+	}
 
+	virtual bool CalculateResultInPlace_OBJ(FDynamicMesh3& EditMesh, FProgressCancel* Progress)
+	{
 		const GS::OBJFormatData& OBJData = SourceData->OBJData;
 
 		// update mesh...
@@ -344,6 +358,58 @@ public:
 			}
 		}
 
+		ApplyTransforms(Mesh, !bHaveNormals);
+
+		EditMesh = MoveTemp(Mesh);
+
+		return true;
+	}
+
+
+
+	virtual bool CalculateResultInPlace_STL(FDynamicMesh3& EditMesh, FProgressCancel* Progress)
+	{
+		const GS::STLReader::STLMeshData& STLData = SourceData->STLData;
+
+		// update mesh...
+		FDynamicMesh3 Mesh;
+
+		int NumTris = STLData.Triangles.size();	
+		for (int k = 0; k < NumTris; ++k) {
+			auto& Triangle = STLData.Triangles[k];
+			int v0 = Mesh.AppendVertex((Vector3d)Triangle.Vertex1);
+			int v1 = Mesh.AppendVertex((Vector3d)Triangle.Vertex2);
+			int v2 = Mesh.AppendVertex((Vector3d)Triangle.Vertex3);
+			Mesh.AppendTriangle(FIndex3i(v0, v1, v2));
+		}
+
+		if (SourceData->bWeldSTL) {
+			FMergeCoincidentMeshEdges Welder(&Mesh);
+			Welder.Apply();
+			Mesh.CompactInPlace();
+		}
+
+		Mesh.EnableAttributes();
+
+		// generate polygroups if necessary
+		Mesh.EnableTriangleGroups();
+		const EGroupLayerMode useLayerMode = EGroupLayerMode::ConnectedComponents;		// others not supported on STL
+		if (useLayerMode == EGroupLayerMode::ConnectedComponents)
+		{
+			FPolygroupsGenerator Generator(&Mesh);
+			Generator.bApplyPostProcessing = false;
+			Generator.FindPolygroupsFromConnectedTris();
+		}
+
+		ApplyTransforms(Mesh, true);
+
+		EditMesh = MoveTemp(Mesh);
+
+		return true;
+	}
+
+	void ApplyTransforms(FDynamicMesh3& Mesh, bool bSetToPerVertexNormals)
+	{
 		if (UpTransform != EUpTransformMode::Unmodified)
 		{
 			FAxisAlignedBox3d Bounds = Mesh.GetBounds();
@@ -376,17 +442,12 @@ public:
 			MeshTransforms::Translate(Mesh, -PivotPos);
 		}
 
-		if (bFlip)
-			Mesh.ReverseOrientation(true);
-
-		// should only compute unset normals...
-		if (!bHaveNormals)
-			FMeshNormals::QuickComputeVertexNormals(Mesh);
-
-		EditMesh = MoveTemp(Mesh);
-
-		return true;
+		if (bSetToPerVertexNormals) {
+			FDynamicMeshNormalOverlay* NormalLayer = Mesh.Attributes()->PrimaryNormals();
+			FMeshNormals::InitializeOverlayToPerVertexNormals(NormalLayer);
+		}
 	}
+
 };
 
 
@@ -475,6 +536,12 @@ void UImportMeshTool::Setup()
 	OBJFormatOptions->WatchProperty(OBJFormatOptions->GroupMode, [&](EImportMeshToolGroupLayerType) { EditCompute->InvalidateResult(); });
 	AddToolPropertySource(OBJFormatOptions);
 	SetToolPropertySourceEnabled(OBJFormatOptions, false);
+
+	STLFormatOptions = NewObject<UImportMeshTool_STLOptions>(this);
+	STLFormatOptions->RestoreProperties(this);
+	STLFormatOptions->WatchProperty(STLFormatOptions->bWeldVertices, [&](bool) { UpdateImport(); });
+	AddToolPropertySource(STLFormatOptions);
+	SetToolPropertySourceEnabled(STLFormatOptions, false);
 
 	OutputTypeProperties = NewObject<UImportMeshTool_CreateMeshProperties>(this);
 	OutputTypeProperties->RestoreProperties(this);
@@ -647,21 +714,25 @@ void UImportMeshTool::UpdateAutoPlacement()
 
 void UImportMeshTool::SelectFileToImport(FString UseSpecificFile)
 {
+	SetToolPropertySourceEnabled(OBJFormatOptions, false);
+	SetToolPropertySourceEnabled(STLFormatOptions, false);
+
 	TArray<FString> OpenFiles;
 	if (UseSpecificFile.IsEmpty() || FPaths::FileExists(UseSpecificFile) == false)
 	{
 		FString DefaultPath = UGSPersistentUEToolSettings::GetLastMeshImportFolder();
-		FString MeshFilterType = TEXT("OBJ File (*.obj)|*.obj");
+		FString MeshFilterType = TEXT("Supported Types (*.obj, *.stl)|*.obj;*.stl|OBJ File (*.obj)|*.obj|STL File (*.stl)|*.stl|All Files (*.*)|*.*");
 		FString FileTypeFilter = MeshFilterType;
 
 		int OutFilterIndex = -1;
 
-		SetToolPropertySourceEnabled(OBJFormatOptions, false);
-
 		bool bSelected = UGSPlatformSubsystem::GetPlatformAPI().ShowModalOpenFilesDialog(
 			TEXT("Select File to Import"), DefaultPath, TEXT(""), FileTypeFilter, OpenFiles, OutFilterIndex);
-		if (!bSelected)
+		if (!bSelected) {
+			if (bCloseToolOnImportDialogCancel)
+				GetToolManager()->PostActiveToolShutdownRequest(this, EToolShutdownType::Cancel);
 			return;
+		}
 	}
 	else
 		OpenFiles.Add(UseSpecificFile);
@@ -676,6 +747,13 @@ void UImportMeshTool::SelectFileToImport(FString UseSpecificFile)
 		bModified = UpdateImport();
 		if (bModified)
 			SetToolPropertySourceEnabled(OBJFormatOptions, true);
+	}
+	else if (Extension.Compare(TEXT("stl"), ESearchCase::IgnoreCase) == 0)
+	{
+		ImportType = EImportMeshToolFormatType::STLFormat;
+		bModified = UpdateImport();
+		if (bModified)
+			SetToolPropertySourceEnabled(STLFormatOptions, true);
 	}
 
 	if (bModified)
@@ -703,6 +781,10 @@ bool UImportMeshTool::UpdateImport()
 	{
 		bUpdated = UpdateImport_OBJ();
 	}
+	else if (ImportType == EImportMeshToolFormatType::STLFormat)
+	{
+		bUpdated = UpdateImport_STL();
+	}
 
 	if (bUpdated)
 	{
@@ -727,15 +809,32 @@ bool UImportMeshTool::UpdateImport_OBJ()
 		ImportData->OBJData = MoveTemp(OBJData);
 		ImportData->FileFormat = EImportMeshToolFormatType::OBJFormat;
 		this->OperatorFactory->SourceData = ImportData;
-
-		//GS::FileTextWriter Writer = GS::FileTextWriter::OpenFile("c:\\scratch\\TEST_WRITE_BACK.obj");
-		//GS::OBJWriter::WriteOBJ(Writer, ImportData->OBJData);
-
 		return true;
 	}
 
 	return false;
 }
+
+
+bool UImportMeshTool::UpdateImport_STL()
+{
+	std::string StdStringPath(TCHAR_TO_UTF8(*CurrentImportFilePath));
+
+	GS::STLReader::STLMeshData STLData;
+	bool bReadOK = GS::STLReader::ReadSTL(StdStringPath, STLData);
+	if (bReadOK)
+	{
+		TSharedPtr<FImportedMeshData> ImportData = MakeShared<FImportedMeshData>();
+		ImportData->FileFormat = EImportMeshToolFormatType::STLFormat;
+		ImportData->STLData = MoveTemp(STLData);
+		ImportData->bWeldSTL = STLFormatOptions->bWeldVertices;
+		this->OperatorFactory->SourceData = ImportData;
+		return true;
+	}
+
+	return false;
+}
+
 
 
 void UImportMeshTool::Shutdown(EToolShutdownType ShutdownType)
@@ -744,6 +843,7 @@ void UImportMeshTool::Shutdown(EToolShutdownType ShutdownType)
 	OutputTypeProperties->SaveProperties(this);
 	TransformOptions->SaveProperties(this);
 	OBJFormatOptions->SaveProperties(this);
+	STLFormatOptions->SaveProperties(this);
 	VisualizationOptions->SaveProperties(this);
 
 	MeshElementsDisplay->Disconnect();
