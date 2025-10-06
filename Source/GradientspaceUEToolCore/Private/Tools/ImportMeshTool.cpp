@@ -590,6 +590,9 @@ void UImportMeshTool::Setup()
 		EditCompute->PreviewMesh->ProcessMesh([&](const FDynamicMesh3& Mesh) {
 			CurrentLocalBounds = Mesh.GetBounds();
 		});
+
+		if (OnImportedMeshChangedFunc)
+			OnImportedMeshChangedFunc();
 	});
 
 
@@ -626,6 +629,9 @@ void UImportMeshTool::OnTick(float DeltaTime)
 
 	MeshElementsDisplay->OnTick(DeltaTime);
 	MeshElementsDisplay->SetTransform(GridFrame.ToFTransform());
+
+	if (OnTickCallback)
+		OnTickCallback();
 }
 
 

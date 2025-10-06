@@ -291,6 +291,11 @@ public:
 	virtual void SetEnableAutoPlacementOnLoad(bool bEnable) { bEnableAutoPlacementOnLoad = bEnable; }
 	virtual void SetCloseOnCancelImportDialog(bool bEnable) { bCloseToolOnImportDialogCancel = bEnable; }
 
+	FString GetCurrentFilePath() const { return CurrentImportFilePath; }
+
+	TFunction<void(void)> OnTickCallback;
+	TFunction<void(void)> OnImportedMeshChangedFunc;
+
 protected:
 
 	// move this back after separating scale hack
