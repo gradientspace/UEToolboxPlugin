@@ -312,6 +312,8 @@ public:
 	UPROPERTY()
 	TObjectPtr<UImportMeshTool_STLOptions> STLFormatOptions;
 
+	UPROPERTY()
+	TObjectPtr<UMeshOpPreviewWithBackgroundCompute> EditCompute = nullptr;
 
 protected:
 
@@ -320,9 +322,6 @@ protected:
 
 	//UPROPERTY()
 	//TWeakObjectPtr<AGSModelGridActor> ExistingActor = nullptr;
-
-	UPROPERTY()
-	TObjectPtr<UMeshOpPreviewWithBackgroundCompute> EditCompute = nullptr;
 
 	UPROPERTY()
 	TObjectPtr<UMeshElementsVisualizerExt> MeshElementsDisplay;
