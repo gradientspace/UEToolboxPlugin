@@ -547,9 +547,10 @@ void UImportMeshTool::Setup()
 	OutputTypeProperties->RestoreProperties(this);
 	OutputTypeProperties->InitializeDefault();
 	OutputTypeProperties->WatchProperty(OutputTypeProperties->OutputType, [this](FString) { OutputTypeProperties->UpdatePropertyVisibility(); });
-	if (OutputTypeProperties->ShouldShowPropertySet())
+	AddToolPropertySource(OutputTypeProperties);	// must always add for runtime keepalive hack
+	if (!OutputTypeProperties->ShouldShowPropertySet())
 	{
-		AddToolPropertySource(OutputTypeProperties);
+		SetToolPropertySourceEnabled(OutputTypeProperties, false);
 	}
 
 	// Create the preview compute for the meshing operation
