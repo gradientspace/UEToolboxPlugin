@@ -330,7 +330,7 @@ void UGSMeshPixelPaintTool::OnActiveTargetTextureUpdated()
 {
 	FVector2i ImageDimensions(PaintTextureWidth, PaintTextureHeight);
 	ImageBuffer = MakeShared<GS::Image4f>();
-	ImageBuffer->Initialize(ImageDimensions.X, ImageDimensions.Y, [&](int64 LinearPixelIndex) {
+	ImageBuffer->InitializeFuncLinear(ImageDimensions.X, ImageDimensions.Y, GS::EGSPixelFormat::RGBA32F, [&](int64 LinearPixelIndex) {
 		FColor SRGBColor = TextureColorBuffer4b[LinearPixelIndex];
 		return (Vector4f)ConvertToLinear(SRGBColor);
 	});
